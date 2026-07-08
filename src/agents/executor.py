@@ -1,17 +1,19 @@
+"""Builder for the Executor agent."""
+
 from __future__ import annotations
 
-from typing import List
-
-from agents import Agent, ModelSettings
+from agents import Agent, ModelSettings, Tool
 from agents.mcp import MCPServer
 
 from src.agents.schemas import StepResult
 
 
 def build_executor(
-    model: str, mcp_servers: List[MCPServer] | None = None, tools: list | None = None
+    model: str,
+    mcp_servers: list[MCPServer] | None = None,
+    tools: list[Tool] | None = None,
 ) -> Agent:
-    """Build the executor agent."""
+    """Build the executor agent that runs a single plan step."""
     return Agent(
         name="Executor",
         instructions=(

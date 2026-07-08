@@ -1,8 +1,8 @@
+"""Builder for the Supervisor (planning) agent."""
+
 from __future__ import annotations
 
-from typing import List
-
-from agents import Agent, ModelSettings
+from agents import Agent, ModelSettings, Tool
 from agents.mcp import MCPServer
 
 from src.agents.schemas import WorkPlan
@@ -10,8 +10,8 @@ from src.agents.schemas import WorkPlan
 
 def build_supervisor(
     model: str,
-    mcp_servers: List[MCPServer] | None = None,
-    tools: list | None = None,
+    mcp_servers: list[MCPServer] | None = None,
+    tools: list[Tool] | None = None,
 ) -> Agent:
     """Build the Supervisor (planning) agent.
 
