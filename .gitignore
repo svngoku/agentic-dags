@@ -1,2 +1,26 @@
+# Environments
 .env
+.venv/
+venv/
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Tooling caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Runtime artifacts
+sessions.db
+*.db-journal
+
+# Editors / local tooling
 .claude
+.vscode/
+.idea/
+.DS_Store
