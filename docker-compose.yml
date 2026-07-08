@@ -55,11 +55,38 @@ services:
     environment:
       PREFECT_API_URL: http://prefect-server:4200/api
       MCP_URL: http://mcp-stub:8000/mcp
+      MCP_TOKEN: ${MCP_TOKEN:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       LLM_MODEL: ${LLM_MODEL:-gpt-4.1}
       AUTO_APPROVE: ${AUTO_APPROVE:-1}
       SERVE_DEPLOYMENT_NAME: ${SERVE_DEPLOYMENT_NAME:-work-order-orchestrator}
       SERVE_CRON: ${SERVE_CRON:-}
+      # Resilience / fan-out (blank keeps the code defaults)
+      LLM_FALLBACK_MODEL: ${LLM_FALLBACK_MODEL:-}
+      LLM_MAX_ATTEMPTS: ${LLM_MAX_ATTEMPTS:-3}
+      LLM_RETRY_BASE_DELAY: ${LLM_RETRY_BASE_DELAY:-1.0}
+      LLM_RETRY_MAX_DELAY: ${LLM_RETRY_MAX_DELAY:-30.0}
+      MAX_CONCURRENT_STEPS: ${MAX_CONCURRENT_STEPS:-0}
+      # Budget / pricing (blank = disabled)
+      LLM_PRICE_INPUT_PER_1M: ${LLM_PRICE_INPUT_PER_1M:-}
+      LLM_PRICE_OUTPUT_PER_1M: ${LLM_PRICE_OUTPUT_PER_1M:-}
+      MAX_COST_USD: ${MAX_COST_USD:-}
+      MAX_TOKENS_BUDGET: ${MAX_TOKENS_BUDGET:-}
+      # Checkpoints (persisted in the worker-data volume below)
+      CHECKPOINT_CLEAR_ON_SUCCESS: ${CHECKPOINT_CLEAR_ON_SUCCESS:-true}
+      CHECKPOINT_DIR: ${CHECKPOINT_DIR:-.checkpoints}
+      CHECKPOINT_ENABLED: ${CHECKPOINT_ENABLED:-false}
+      WORK_ORDER_ID: ${WORK_ORDER_ID:-}
+      # Sessions / tracing
+      SESSION_DB_PATH: ${SESSION_DB_PATH:-sessions.db}
+      SESSION_ID: ${SESSION_ID:-}
+      TRACE_INCLUDE_SENSITIVE_DATA: ${TRACE_INCLUDE_SENSITIVE_DATA:-false}
+      TRACING_API_KEY: ${TRACING_API_KEY:-}
+      TRACING_DISABLED: ${TRACING_DISABLED:-false}
+      WORKFLOW_NAME: ${WORKFLOW_NAME:-Work Order Orchestrator}
+    volumes:
+      # Keeps step checkpoints (resumability) across container recreation.
+      - worker-data:/app/.checkpoints
     depends_on:
       prefect-server:
         condition: service_healthy
@@ -68,3 +95,4 @@ services:
 
 volumes:
   prefect-data:
+  worker-data:

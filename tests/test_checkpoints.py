@@ -80,6 +80,26 @@ def test_work_order_id_overrides_run_key(
     assert store.request_hash != "wo-42"
 
 
+def test_unsafe_work_order_id_is_replaced_by_derived_key(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv("WORK_ORDER_ID", "../../etc/escape")
+    store = _store(monkeypatch, tmp_path)
+    expected = hashlib.sha256(b"../../etc/escape").hexdigest()[:12]
+    assert store.run_key == expected
+    assert store.path == tmp_path / f"{expected}.json"
+    # The resolved file must stay inside the checkpoint directory.
+    assert store.path.resolve().parent == tmp_path.resolve()
+
+
+def test_safe_work_order_id_with_dots_and_dashes_is_kept(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv("WORK_ORDER_ID", "wo_42.retry-1")
+    store = _store(monkeypatch, tmp_path)
+    assert store.run_key == "wo_42.retry-1"
+
+
 def test_clear_on_success_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     assert _store(monkeypatch, tmp_path).clear_on_success is True
     monkeypatch.setenv("CHECKPOINT_CLEAR_ON_SUCCESS", "false")

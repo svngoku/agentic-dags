@@ -14,6 +14,8 @@ time, parsed like the other booleans in the codebase -- see ``src.config``):
   (the orchestrator must add it to ``.gitignore``).
 * ``WORK_ORDER_ID`` -- optional explicit run key; when unset the key is
   ``sha256(request_text.strip())[:12]`` so identical requests share a file.
+  Keys are restricted to ``[A-Za-z0-9._-]``; anything else is replaced by a
+  hash of the value so a key can never point outside ``CHECKPOINT_DIR``.
 * ``CHECKPOINT_CLEAR_ON_SUCCESS`` -- delete the file after a fully successful
   flow run, default ``true``.
 
@@ -28,6 +30,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import os
+import re
 import tempfile
 from collections.abc import Iterable
 from pathlib import Path
@@ -40,6 +43,9 @@ logger = logging.getLogger(__name__)
 
 SCHEMA_VERSION = 1
 DEFAULT_CHECKPOINT_DIR = ".checkpoints"
+
+#: Characters allowed in a run key (the checkpoint file stem).
+_SAFE_KEY_RE = re.compile(r"[A-Za-z0-9._-]+")
 
 _TRUTHY_VALUES = frozenset({"1", "true", "yes", "on"})
 
@@ -93,6 +99,15 @@ class CheckpointStore(BaseModel):
         directory = os.getenv("CHECKPOINT_DIR", "").strip() or DEFAULT_CHECKPOINT_DIR
         request_hash = _request_hash(request_text)
         run_key = (os.getenv("WORK_ORDER_ID") or "").strip() or request_hash
+        if not _SAFE_KEY_RE.fullmatch(run_key):
+            derived = hashlib.sha256(run_key.encode("utf-8")).hexdigest()[:12]
+            logger.warning(
+                "WORK_ORDER_ID %r contains characters outside [A-Za-z0-9._-]; "
+                "using derived key %s so the file stays inside CHECKPOINT_DIR",
+                run_key,
+                derived,
+            )
+            run_key = derived
         return cls(
             path=Path(directory) / f"{run_key}.json",
             run_key=run_key,
@@ -160,6 +175,11 @@ class CheckpointStore(BaseModel):
 
         Prefer this after each parallel group: one disk write per group
         instead of one per step. Semantics match :meth:`save`.
+
+        Concurrent flow runs sharing the *same* run key are outside this
+        module's design envelope: the read-modify-write is not locked, so
+        simultaneous writers can lose each other's updates (those steps simply
+        re-run later); ``os.replace`` keeps the file itself uncorrupted.
         """
         current = self.load()
         changed = False

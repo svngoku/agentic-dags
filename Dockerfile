@@ -30,7 +30,9 @@ ENV PATH="/app/.venv/bin:$PATH"
 
 # Run as a non-root user; /app itself stays writable so runtime artifacts
 # (sessions.db, .checkpoints/) can be created next to the code.
-RUN useradd --create-home --uid 1000 app && chown app /app
+RUN useradd --create-home --uid 1000 app \
+    && mkdir -p /app/.checkpoints \
+    && chown app /app /app/.checkpoints
 USER app
 
 # Default entrypoint: serve the work-order flow as a Prefect deployment.

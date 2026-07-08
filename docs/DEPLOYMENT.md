@@ -94,7 +94,7 @@ Unset (default) means the deployment only runs when triggered manually.
 - **Tracing**: in production either set `TRACING_API_KEY` deliberately and keep
   `TRACE_INCLUDE_SENSITIVE_DATA=false`, or set `TRACING_DISABLED=true` to keep
   prompts/outputs out of external trace storage.
-- **Approvals**: leave `AUTO_APPROVE=0` in production so mutating steps wait
+- **Approvals**: set `AUTO_APPROVE=0` in production so mutating steps wait
   for a human in the Prefect UI; `1` is a demo convenience.
 - **Real MCP servers**: swap `MCP_URL` from the stub to your production MCP
   endpoint(s) and review the tool allowlist in `src/wrapper/mcp.py`.

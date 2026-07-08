@@ -118,8 +118,16 @@ def test_delay_curve_caps_at_max_and_jitter_is_bounded() -> None:
     assert [capped.delay_for_attempt(n) for n in (1, 2, 3)] == [10.0, 15.0, 15.0]
     jittered = _policy(jitter=True)
     for _ in range(50):
-        assert 1.0 <= jittered.delay_for_attempt(1) <= 1.5
-        assert 2.0 <= jittered.delay_for_attempt(2) <= 3.0
+        assert 0.5 <= jittered.delay_for_attempt(1) <= 1.0
+        assert 1.0 <= jittered.delay_for_attempt(2) <= 2.0
+
+
+def test_jitter_never_exceeds_cap_and_stays_decorrelated_at_cap() -> None:
+    policy = _policy(base_delay_seconds=10.0, max_delay_seconds=15.0, jitter=True)
+    samples = [policy.delay_for_attempt(5) for _ in range(200)]
+    assert all(7.5 <= sample <= 15.0 for sample in samples)
+    # Full jitter below the cap keeps retries spread out even when saturated.
+    assert max(samples) - min(samples) > 1.0
 
 
 @pytest.mark.parametrize(

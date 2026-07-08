@@ -105,13 +105,16 @@ class RetryPolicy(BaseModel):
     def delay_for_attempt(self, attempt: int) -> float:
         """Delay before retrying after failed attempt ``attempt`` (1-based).
 
-        ``min(base * 2**(attempt - 1), max)`` plus uniform jitter in
-        ``[0, delay / 2]`` when ``jitter`` is enabled.
+        Exponential backoff hard-capped at ``max_delay_seconds``. With
+        ``jitter`` enabled the delay is drawn uniformly from
+        ``[capped / 2, capped]`` — full jitter below the cap, so retries stay
+        decorrelated even once the curve saturates while the configured cap
+        is never exceeded.
         """
-        delay = min(self.base_delay_seconds * 2 ** (attempt - 1), self.max_delay_seconds)
+        capped = min(self.base_delay_seconds * 2 ** (attempt - 1), self.max_delay_seconds)
         if self.jitter:
-            delay += random.uniform(0.0, delay / 2)
-        return delay
+            return random.uniform(capped / 2, capped)
+        return capped
 
 
 def is_transient(exc: BaseException) -> bool:
@@ -203,6 +206,11 @@ async def run_with_resilience(
     fallback model and given ``policy.max_attempts`` more tries. Non-transient
     errors propagate immediately. ``runner_fn`` and ``sleep`` are injectable
     for offline tests.
+
+    Known limitation: only the final successful ``RunResult`` is returned, so
+    token usage burned by failed attempts (retries, or an exhausted primary
+    before a fallback) is invisible to callers that meter usage from the
+    result — run metrics undercount by exactly those attempts.
     """
     active_policy = policy if policy is not None else RetryPolicy.from_env()
     active_runner: RunnerFn = runner_fn if runner_fn is not None else Runner.run

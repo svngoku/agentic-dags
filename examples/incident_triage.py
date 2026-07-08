@@ -70,11 +70,12 @@ def build_config() -> AppConfig:
     """Build an :class:`AppConfig` in code instead of ``AppConfig.from_env``.
 
     This is where builders override the model, workflow name, or approval
-    behavior programmatically. Only the API key still comes from the
-    environment (read at call time, never at import time).
+    behavior programmatically. The API key and the documented ``LLM_MODEL``
+    knob still come from the environment (read at call time, never at
+    import time).
     """
     return AppConfig(
-        model=os.getenv("INCIDENT_MODEL", "gpt-4.1"),  # model override knob
+        model=os.getenv("LLM_MODEL", "gpt-4.1"),  # same knob the flow honors
         openai_api_key=os.getenv("OPENAI_API_KEY", ""),
         workflow_name="Incident Triage",
         auto_approve=True,  # demo: don't pause; set False to gate risky steps
@@ -106,6 +107,10 @@ async def run_direct() -> None:
         for step in plan.steps:
             flags = f"group={step.parallel_group} approval={step.needs_approval}"
             print(f"  [{step.id}] {step.goal} ({flags})")
+
+        if not plan.steps:
+            print("Supervisor returned an empty plan; nothing to execute.")
+            return
 
         first_step = plan.steps[0]
         step_run = await run_agent(

@@ -227,6 +227,22 @@ def _merge_group_results(
     return [completed.get(step.id) or fresh_by_id[step.id] for step in group_steps]
 
 
+def _validate_plan(plan: WorkPlan) -> WorkPlan:
+    """Reject structurally unusable plans so Prefect retries the planner.
+
+    Plan step ids are model-controlled output: empty plans have nothing to
+    execute, and duplicate ids would make results ambiguous (checkpoint keys
+    and result merging are id-addressed).
+    """
+    if not plan.steps:
+        raise ValueError("Supervisor returned a plan with no steps")
+    step_ids = [step.id for step in plan.steps]
+    duplicates = sorted({step_id for step_id in step_ids if step_ids.count(step_id) > 1})
+    if duplicates:
+        raise ValueError(f"Supervisor returned duplicate step ids: {duplicates}")
+    return plan
+
+
 @task(retries=2, retry_delay_seconds=5, cache_policy=NONE)
 async def plan_task(
     request_text: str,
@@ -245,10 +261,7 @@ async def plan_task(
         fallback_model=fallback_model_from_env(),
     )
     tracker.record("plan", result)
-    plan = result.final_output_as(WorkPlan)
-    if not plan.steps:
-        raise ValueError("Supervisor returned a plan with no steps")
-    return plan
+    return _validate_plan(result.final_output_as(WorkPlan))
 
 
 @task(retries=2, retry_delay_seconds=5, cache_policy=NONE)
@@ -303,6 +316,23 @@ def _coerce_step_result(
             step_id=step.id,
             status="failed",
             notes=[f"Execution error: {type(outcome).__name__}: {outcome}"],
+        )
+    if outcome.step_id != step.id:
+        # step_id is model-controlled output; never let a hallucinated id
+        # corrupt id-addressed result merging or checkpoint keys downstream.
+        logger.warning(
+            "Step %s returned mismatched step_id %r; normalizing",
+            step.id,
+            outcome.step_id,
+        )
+        return outcome.model_copy(
+            update={
+                "step_id": step.id,
+                "notes": [
+                    *outcome.notes,
+                    f"Normalized mismatched step_id {outcome.step_id!r}",
+                ],
+            }
         )
     return outcome
 

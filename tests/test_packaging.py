@@ -47,6 +47,30 @@ def test_compose_worker_wiring() -> None:
     assert set(worker["depends_on"]) == {"prefect-server", "mcp-stub"}
 
 
+def test_compose_worker_forwards_production_env_vars() -> None:
+    env = _load_compose()["services"]["worker"]["environment"]
+    for name in (
+        "LLM_FALLBACK_MODEL",
+        "LLM_MAX_ATTEMPTS",
+        "MAX_CONCURRENT_STEPS",
+        "MAX_TOKENS_BUDGET",
+        "MAX_COST_USD",
+        "CHECKPOINT_ENABLED",
+        "WORK_ORDER_ID",
+        "SESSION_ID",
+        "TRACING_DISABLED",
+        "MCP_TOKEN",
+    ):
+        assert name in env, f"worker must forward {name}"
+
+
+def test_compose_worker_persists_checkpoints_volume() -> None:
+    compose = _load_compose()
+    worker = compose["services"]["worker"]
+    assert any(".checkpoints" in mount for mount in worker.get("volumes", []))
+    assert "worker-data" in compose.get("volumes", {})
+
+
 def test_compose_mcp_stub_binds_all_interfaces() -> None:
     stub = _load_compose()["services"]["mcp-stub"]
     assert stub["environment"]["MCP_HOST"] == "0.0.0.0"
