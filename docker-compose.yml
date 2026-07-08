@@ -1,0 +1,70 @@
+# Local/production-ish stack for the agentic-dags template.
+#
+#   docker compose up --build
+#
+# Services (all on the default compose network, addressable by service name):
+#   prefect-server — Prefect 3 API + UI on http://localhost:4200
+#   mcp-stub       — FastMCP stub with demo tools (internal port 8000)
+#   worker         — serves the work-order flow as a Prefect deployment
+#                    (src/serve.py) and executes triggered runs in-process.
+#
+# Requires OPENAI_API_KEY in the shell or in a .env file next to this file
+# (compose reads .env automatically). See docs/DEPLOYMENT.md.
+
+services:
+  prefect-server:
+    image: prefecthq/prefect:3-latest
+    command: prefect server start --host 0.0.0.0
+    ports:
+      - "4200:4200"
+    volumes:
+      - prefect-data:/root/.prefect
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:4200/api/health', timeout=5)"
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+
+  mcp-stub:
+    build: .
+    command: python -m src.mcp_stub_server
+    environment:
+      MCP_HOST: 0.0.0.0
+      MCP_PORT: "8000"
+    expose:
+      - "8000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import socket; socket.create_connection(('127.0.0.1', 8000), timeout=3).close()"
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+
+  worker:
+    build: .
+    command: python -m src.serve
+    environment:
+      PREFECT_API_URL: http://prefect-server:4200/api
+      MCP_URL: http://mcp-stub:8000/mcp
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-gpt-4.1}
+      AUTO_APPROVE: ${AUTO_APPROVE:-1}
+      SERVE_DEPLOYMENT_NAME: ${SERVE_DEPLOYMENT_NAME:-work-order-orchestrator}
+      SERVE_CRON: ${SERVE_CRON:-}
+    depends_on:
+      prefect-server:
+        condition: service_healthy
+      mcp-stub:
+        condition: service_healthy
+
+volumes:
+  prefect-data:

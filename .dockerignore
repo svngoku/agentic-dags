@@ -1,0 +1,33 @@
+# Environments & secrets
+.env
+.venv
+venv
+
+# VCS / CI / editors
+.git
+.github
+.vscode
+.idea
+.claude
+
+# Python artifacts
+__pycache__
+*.py[cod]
+*.egg-info
+build
+dist
+
+# Tooling caches
+.pytest_cache
+.ruff_cache
+.mypy_cache
+
+# Runtime artifacts
+sessions.db
+*.db-journal
+.checkpoints
+
+# Not needed inside the image
+tests
+docs
+examples

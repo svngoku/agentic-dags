@@ -18,6 +18,7 @@ dist/
 # Runtime artifacts
 sessions.db
 *.db-journal
+.checkpoints/
 
 # Editors / local tooling
 .claude
