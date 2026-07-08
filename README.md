@@ -66,7 +66,7 @@ uv run python -m src.projects.interactive_assistant "Summarize this: ..."
 
 ## Project layout
 
-```
+```text
 src/
 ├── agents/          # Agent builders + pydantic I/O schemas
 ├── flows/           # Prefect flow orchestrating the DAG
