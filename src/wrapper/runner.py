@@ -1,20 +1,26 @@
+"""Thin helpers around ``agents.Runner`` for common run patterns."""
+
 from __future__ import annotations
 
-from typing import Any, AsyncIterator
+from collections.abc import AsyncIterator
 
+from agents import Agent, RunConfig, Runner, RunResult
+from agents.memory import Session
 from openai.types.responses import ResponseTextDeltaEvent
-from agents import Agent, RunConfig, Runner
+
+DEFAULT_MAX_TURNS = 10
 
 
-def run_agent(
+async def run_agent(
     agent: Agent,
     input_text: str,
     *,
     run_config: RunConfig | None = None,
-    session=None,
-    max_turns: int = 10,
-):
-    return Runner.run(
+    session: Session | None = None,
+    max_turns: int = DEFAULT_MAX_TURNS,
+) -> RunResult:
+    """Run ``agent`` to completion and return the full ``RunResult``."""
+    return await Runner.run(
         agent,
         input_text,
         run_config=run_config,
@@ -28,9 +34,10 @@ async def stream_text(
     input_text: str,
     *,
     run_config: RunConfig | None = None,
-    session=None,
-    max_turns: int = 10,
+    session: Session | None = None,
+    max_turns: int = DEFAULT_MAX_TURNS,
 ) -> AsyncIterator[str]:
+    """Run ``agent`` with streaming and yield text deltas as they arrive."""
     result = Runner.run_streamed(
         agent,
         input_text,

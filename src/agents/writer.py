@@ -1,16 +1,19 @@
+"""Builder for the Writer (synthesis) agent."""
+
 from __future__ import annotations
 
-from typing import List
-
-from agents import Agent, ModelSettings
+from agents import Agent, ModelSettings, Tool
 from agents.mcp import MCPServer
 
 from src.agents.schemas import FinalOutput
 
 
 def build_writer(
-    model: str, mcp_servers: List[MCPServer] | None = None, tools: list | None = None
+    model: str,
+    mcp_servers: list[MCPServer] | None = None,
+    tools: list[Tool] | None = None,
 ) -> Agent:
+    """Build the writer agent that synthesizes step results into a report."""
     return Agent(
         name="Writer",
         instructions=(

@@ -5,11 +5,38 @@ description = "Agentic DAG templates with MCP and Prefect"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
+    "mcp>=1.0.0",
     "openai-agents>=0.1.0",
     "prefect>=2.14.0",
     "pydantic>=2.6.0",
     "python-dotenv>=1.0.0",
 ]
 
-[tool.uv]
-dev-dependencies = []
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
+    "ruff>=0.8.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+# Keep the project root as the only source root so the installed `agents`
+# SDK package is not confused with the local `src/agents` package.
+src = ["."]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "SIM", # flake8-simplify
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+asyncio_mode = "auto"
