@@ -1,10 +1,13 @@
+"""Helpers for building agent handoffs."""
+
 from __future__ import annotations
 
-from agents import Agent, RunContextWrapper, handoff
+from agents import Agent, Handoff, RunContextWrapper, handoff
 from agents.extensions import handoff_filters
 
 
-def build_handoff(target: Agent):
+def build_handoff(target: Agent) -> Handoff:
+    """Build a handoff to ``target`` with tool-call history stripped."""
     return handoff(
         agent=target,
         tool_name_override=f"transfer_to_{target.name.lower()}",
@@ -15,5 +18,5 @@ def build_handoff(target: Agent):
 
 
 def _on_handoff(ctx: RunContextWrapper[None]) -> None:
-    # Hook for logging/metrics; keep empty by default.
+    """Hook for logging/metrics; intentionally a no-op by default."""
     return None
