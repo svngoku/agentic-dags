@@ -1,16 +1,32 @@
+"""Function tools shared by the agents."""
+
 from __future__ import annotations
 
 from agents import function_tool
 
 from src.wrapper.guardrails import tool_guardrails
 
+MAX_SUMMARY_LENGTH = 120
 
-tool_input_guardrails, tool_output_guardrails = tool_guardrails()
+_tool_input_guardrails, _tool_output_guardrails = tool_guardrails()
+
+
+def truncate_summary(text: str, max_length: int = MAX_SUMMARY_LENGTH) -> str:
+    """Trim ``text`` to ``max_length`` characters, adding an ellipsis if needed.
+
+    Kept separate from the decorated tool so the logic is directly testable.
+    """
+    trimmed = text.strip()
+    if not trimmed:
+        return "Empty input."
+    if len(trimmed) <= max_length:
+        return trimmed
+    return f"{trimmed[: max_length - 3]}..."
 
 
 @function_tool(
-    tool_input_guardrails=tool_input_guardrails,
-    tool_output_guardrails=tool_output_guardrails,
+    tool_input_guardrails=_tool_input_guardrails,
+    tool_output_guardrails=_tool_output_guardrails,
 )
 def summarize_text(text: str) -> str:
     """Summarize text into a single concise sentence.
@@ -18,9 +34,4 @@ def summarize_text(text: str) -> str:
     Args:
         text: The text to summarize.
     """
-    if not text.strip():
-        return "Empty input."
-    trimmed = text.strip()
-    if len(trimmed) <= 120:
-        return trimmed
-    return f"{trimmed[:117]}..."
+    return truncate_summary(text)
